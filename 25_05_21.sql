@@ -1,0 +1,301 @@
+SELECT * FROM EMP;
+SELECT * FROM DEPT;
+SELECT * FROM SALGRADE;
+
+ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS';
+SELECT SYSDATE FROM DUAL;
+
+
+SELECT * FROM EMP ORDER BY DEPTNO ASC;
+-- 다양한 고급 그룹화 함수 기능소개
+
+-- (ROLLUP) : 계층적 요약
+-- 부서번호별, 직책별 급여 합계 (ROLL UP)
+-- SELECT * FROM 테이블 GROUP BY ROLLUP(부서 , 직책);
+SELECT DEPTNO, JOB, SUM(SAL) FROM EMP GROUP BY ROLLUP(DEPTNO, JOB);
+
+-- CUBE : 모든 조합 분석
+-- 기본문법
+-- SELECT 부서번호, 직책 SUM(급여) FROM EMP GROUP BY CUBE(부서, 직책);
+-- (부서,직책), (부서), (직책) 모든 집계조합 가능.
+SELECT DEPTNO, JOB, SUM(SAL) FROM EMP GROUP BY CUBE(DEPTNO, JOB);
+
+
+-- GROUPING : 집계로 인한 NULL 여부 식별에 사용
+-- 기본문법
+-- SELECT 컬럼1, 컬럼2, 집계함수(컬럼3), GROUPING(컬럼1) AS "그룹1", GROUPING(컬럼2) AS "그룹2" FROM 테이블 GROUP BY ROLLUP(컬럼1, 컬럼2);
+-- DEPTNO = 1 이라면 전체 집계로 생긴 NULL
+-- JOB = 1 이라면 부서 합계로 생긴 NULL
+SELECT DEPTNO, JOB, SUM(SAL) AS "총급여" , GROUPING(DEPTNO) AS "GROUP_DEPTNO", GROUPING(JOB) AS "GROUP_JOB" FROM EMP GROUP BY ROLLUP(DEPTNO, JOB);
+
+
+-- PIVOT : 행 데이터 -->열 데이터
+-- 기본문법
+-- SELECT * FROM (SELECT 기준 컬럼, 피벗컬럼, 값 컬럼 FROM 테이블) 테이블 PIVOT(집계함수(값 컬럼) FOR 피벗컬럼 IN (값1 AS "별칭1", 값2 AS "별칭2", ...));
+-- 직책별 급여 합계를 부서별로, 가로형태로 전환
+SELECT * FROM (SELECT DEPTNO, JOB, SAL FROM EMP) PIVOT(
+SUM(SAL)FOR JOB IN ('CLERK' AS "사무직", 'MANAGER' AS "관리자", 'ANALYST' AS "분석가"));
+
+
+-- UNPIVOT : 열 데이터를 다시 행으로 전환
+-- 기본문법
+-- SELECT * FROM (SELECT 기준컬럼, 열1, 열2, ... FROM 테이블명) 
+--                  UNPIVOT(값 컬럼 FOR 피벗컬럼 IN (열1, 열2, ...)
+--                          );
+-- 위 PIVOT 된 결과를 다시 행으로 변환
+SELECT DEPTNO, JOB, SUM(SAL) AS "총급여"
+FROM ( 
+SELECT * 
+    FROM ( 
+    SELECT DEPTNO, JOB, SAL
+    FROM EMP
+    )
+    PIVOT(
+    SUM(SAL) FOR JOB IN 
+    ('CLERK' AS "사무직", 'MANAGER' AS "관리자",
+    'ANALYST' AS "분석가")
+    )
+)
+-- 위에서 만든, 가로로 변환한 예를 다시, 세로 방향으로 변환. 
+UNPIVOT (
+    SAL FOR JOB IN (
+    "사무직" AS 'CLERK', 
+    "관리자" AS 'MANAGER',
+    "분석가" AS 'ANALYST')
+)
+GROUP BY DEPTNO, JOB
+ORDER BY DEPTNO, JOB;
+
+
+-- UNPIVOT 예시) 열 기준의 급여 데이터를 연도기준 행으로 전환
+-- SELECT * FROM (SELECT EMPNO, SUM(SAL)
+-- 실제로 출력이 되는 컬럼은 EMPNO, ENAME, 항목, 금액
+SELECT EMPNO, ENAME, 항목, 금액 FROM (SELECT EMPNO, ENAME, SAL, COMM FROM EMP)
+    UNPIVOT( 
+    -- 실제 값이 들어갈 컬럼명
+    금액
+    -- 어떤 항목인 구분하는 컬럼명 (예시: 급여, 커미션)
+    FOR 항목
+    
+    IN (
+    -- SAL, COMM UNPIVOT의 대상의 되는 열
+    -- SAL 컬럼을 급여 라는 별칭 변환, COMM 컬럼을 수당 이라는 별칭 변환.
+    SAL AS '급여', COMM AS '수당')
+    );
+    
+    
+-- 퀴즈1) EMP 테이블에서 SAL, COMM 을 UNPIVOT 한 후, 항목별 (급여/커미션) 전체 합계를 구하기. 별칭) 항목, 총합계
+SELECT ENAME, SAL, COMM FROM EMP;
+-- 기존 테이블 , 가로로 
+-- ENAME  SAL   COMM 
+-- KING   5000  NULL
+
+-- UNPIVOT 을 적용하면 데이터, 
+-- 변환 후, 
+-- ENAME   항목(새로 만든 임의의 컬럼)  금액(임의 만듦)
+-- KING    SAL(별칭 : 급여)           5000
+-- KING    COMM(별칭 : 수당)           NULL
+
+SELECT 항목, SUM(금액) AS "총합계" FROM 
+-- 언피벗의 대상이 되는 컬럼
+-- 원래는 가로로 배치된 데이터 ( SAL , COMM) 
+-- 이 데이터 들을 변환 해서, 세로로 배치할 계획
+(SELECT SAL, COMM FROM EMP) 
+UNPIVOT (금액 FOR 항목 IN(SAL AS '급여', COMM AS '커미션'))
+GROUP BY 항목;
+
+-- 풀이2 
+SELECT ENAME ,항목, SUM(금액) AS "총합계"
+FROM (
+-- UNPIVOT이 되는 되상 컬럼
+-- 원래 , 가로로 배치된 데이터, 
+-- 이 데이터 들을 변환 해서, 세로로 배치할 계획
+    SELECT ENAME, SAL, COMM FROM EMP
+)
+UNPIVOT (
+    금액 FOR 항목 IN (
+    SAL AS '급여',
+    COMM AS '수당'
+    )
+)
+GROUP BY ENAME,항목;
+
+-- ////////////////////////////////////////////////
+-- 카티션 곱
+SELECT * FROM SALGRADE;
+SELECT * FROM DEPT; --4개
+SELECT * FROM EMP; --14개
+--KING, DEPTNO 10, DNAME :ACCOUNTING 등 이거 외에도 다른부서도 또 출력이됨(중복!!!)
+SELECT E.ENAME, D.DNAME FROM EMP E, DEPT D; --56개
+
+-- 테이블 별칭을 이용하여 조인해보기.
+SELECT E.ENAME, D.DNAME, D.LOC FROM EMP E, DEPT D WHERE E.DEPTNO = D.DEPTNO;
+
+-- EMP, DEPT 테이블을 등가조인하여 부서번호가 30번인 사원만 출력.
+SELECT E.DEPTNO, E.ENAME, D.DNAME FROM EMP E, DEPT D WHERE E.DEPTNO = D.DEPTNO AND E.DEPTNO=30;
+
+-- 퀴즈1) EMP와 DEPT 테이블을 조인하여 관리자('MANAGER')직무를 가진 사원의 이름과 부서명 출력 [등가조인]
+SELECT E.ENAME, D.DNAME FROM EMP E, DEPT D WHERE E.DEPTNO = D.DEPTNO AND E.JOB='MANAGER';
+
+-- 퀴즈2) 각 사원의 이름과 그 사원의 직속 상관의 이름을 함께 출력해보기. / 별칭) 사원명, 직속상관명 [자체조인]
+SELECT E.EMPNO AS "사원번호", E.ENAME AS "사원명", E.MGR AS "직속상관번호", M.ENAME AS "직속 상관명" FROM EMP E, EMP M WHERE E.MGR = M.EMPNO;
+-- EMP 테이블을 2개로 나눔 ==> FROM EMP E, EMP M / 공통되는숫자 -> EMPNO, MGR
+
+
+-- 비등가조인, 외부조인 (오라클전용)
+SELECT E.ename, E.SAL, G.LOSAL, G.HISAL, G.grade FROM EMP E, SALGRADE G WHERE E.sal BETWEEN G.losal AND G.hisal;
+
+
+-- 외부조인 (오라클전용)
+-- 오른쪽 외부조인 : (오른쪽 기준으로 왼쪽에 값이 없어도 표기하겠다.)
+-- 값이 NULL 이어도 표기하겠다.
+SELECT E.ENAME, D.DNAME FROM EMP E, DEPT D 
+WHERE E.DEPTNO = D.DEPTNO(+); 
+
+
+--원본, 자체 조인 = 등가 조인, MGR = EMPNO
+-- NULL  인 경우  , 데이터가 누락이됨.
+SELECT * FROM EMP;
+SELECT * FROM DEPT;
+SELECT E.EMPNO AS "EMP 사원번호", 
+E.ENAME AS "EMP 사원명", 
+E.MGR AS "EMP직속 상관번호",
+M.ENAME AS "EMP2직속 상관명" FROM EMP E, EMP M
+WHERE E.MGR = M.EMPNO;
+
+
+-- 외부 조인 버전으로 변경해서 누락 없이 
+-- 왼쪽 컬럼을 기준으로 표기하기. 
+
+-- 왼쪽 외부 조인
+SELECT E.EMPNO AS "EMP 사원번호", 
+E.ENAME AS "EMP 사원명", 
+E.MGR AS "EMP직속 상관번호",
+M.ENAME AS "EMP2직속 상관명" FROM EMP E, EMP M
+WHERE E.MGR = M.EMPNO(+);
+
+
+-- 외부 조인 버전으로 변경해서 누락 없이 
+-- 오른쪽 컬럼을 기준으로 표기하기. 
+-- 오른쪽 외부 조인
+SELECT E.EMPNO AS "EMP 사원번호", 
+E.ENAME AS "EMP 사원명", 
+E.MGR AS "EMP직속 상관번호",
+M.ENAME AS "EMP2직속 상관명" FROM EMP E, EMP M
+WHERE E.MGR(+) = M.EMPNO;
+
+
+-- 퀴즈1)EMP, DEPT 테이블에서 부서가 없는 사원도 포함해 사원명과 부서명을 출력하시오. // 왼쪽외부조인 
+SELECT E.ENAME AS "사원명", E.DEPTNO, E.EMPNO AS "사원번호", D.DNAME AS "부서명" FROM EMP E, DEPT D WHERE E.DEPTNO = D.DEPTNO(+);
+-- 퀴즈2) 오른쪽 외부조인 사용, 부서가있지만 사원이 없는부서를 포함해서 출력
+SELECT E.ENAME AS "사원명", E.EMPNO AS "사원번호", D.DNAME AS "부서명" FROM EMP E, DEPT D WHERE E.DEPTNO(+) = D.DEPTNO;
+-- 퀴즈3) WHERE 절에 추가조건 ('JOB = 'CELERK')를 넣고 부서별 사원 출력
+SELECT E.ENAME AS "사원명",E. JOB AS "직책", D.DNAME AS "부서명", D.DEPTNO AS "부서번호" FROM EMP E, DEPT D WHERE E.DEPTNO = D.DEPTNO AND E.JOB = 'CLERK';
+
+-- //////////////////////////////////////////////////////////////
+-- 표준 SQL 99 이용해서, 조인의 표현식 연습
+
+-- 기본 문법표시
+
+-- NATURAL JOIN
+SELECT * FROM EMP NATURAL JOIN DEPT;
+-- 생략 버전 
+-- NATURAL JOIN	  ON, USING 모두 생략 두 테이블에 같은 이름의 컬럼이 반드시 있어야 함
+
+
+-- JOIN USING
+SELECT ENAME, DNAME FROM EMP JOIN DEPT USING(DEPTNO);
+-- 생략 버전 
+--JOIN USING(col)	ON A.col = B.col 생략	조인 컬럼 이름이 동일해야 함
+
+
+-- JOIN ON  ,가장 많이 사용하는 포맷 형식
+-- JOIN ON A.col = B.col	❌ 생략 불가		가장 명시적, 유연함
+SELECT ENAME, DNAME FROM EMP JOIN DEPT ON EMP.DEPTNO = DEPT.DEPTNO;
+
+-- LEFT OUTER JOIN, 왼쪽 외부조인  OUTER 생략 가능
+SELECT ENAME, DNAME FROM EMP LEFT OUTER JOIN DEPT ON EMP.DEPTNO = DEPT.DEPTNO;
+-- RIGHT OUTER JOIN, 오른쪽 외부조인
+SELECT ENAME, DNAME FROM EMP RIGHT OUTER JOIN DEPT ON EMP.DEPTNO = DEPT.DEPTNO;
+-- FULL OUTER JOIN, 양쪽 외부조인
+SELECT ENAME, DNAME FROM EMP FULL OUTER JOIN DEPT ON EMP.DEPTNO = DEPT.DEPTNO;
+
+
+-- 3개 이상 테이블 조인
+SELECT EMP.ENAME, DEPT.DNAME, LOCATION.LOC_ID FROM EMP
+    JOIN DEPT ON EMP.DEPTNO = DEPT.DEPTNO
+        JOIN LOCATION ON DEPT.DEPTNO = LOCATION.LOC_ID;
+        
+-- 임시 테이블 생성
+CREATE TABLE LOCATION (
+    LOC_ID NUMBER PRIMARY KEY,
+    LOC VARCHAR2(50)
+    );
+
+
+-- 퀴즈1
+-- `JOIN ... ON`을 사용하여 EMP와 DEPT를 등가 조인하시오.  
+SELECT * FROM EMP JOIN DEPT ON EMP.DEPTNO = DEPT.DEPTNO;
+-- 퀴즈2
+-- `NATURAL JOIN`으로 EMP와 DEPT를 연결하시오.  
+SELECT * FROM EMP NATURAL JOIN DEPT;
+-- 퀴즈3
+-- `USING`을 사용해 조인하되, 부서명이 있는 사원만 출력하시오.
+SELECT ENAME,DNAME FROM EMP JOIN DEPT USING(DEPTNO);
+-- 퀴즈4
+--`LEFT OUTER JOIN`을 사용하여 부서가 없는 사원도 포함한 결과를 출력하시오.  
+SELECT ENAME , DNAME FROM EMP LEFT OUTER JOIN DEPT ON EMP.DEPTNO = DEPT.DEPTNO;
+-- 퀴즈5
+-- EMP, DEPT, LOCATION 테이블을 SQL-99 방식으로 연결하여 
+-- 사원이름, 부서명, 지역명을 출력하시오.  
+SELECT EMP.ENAME AS"사원이름", DEPT.DNAME AS"부서명", LOCATION.LOC AS"지역명"
+    FROM EMP JOIN DEPT ON EMP.DEPTNO = DEPT.DEPTNO
+        JOIN LOCATION ON DEPT.DEPTNO = LOCATION.LOC_ID;
+-- 퀴즈6
+-- `FULL OUTER JOIN`으로 사원이 없는 부서와 
+-- 부서가 없는 사원을 모두 출력하시오. 
+SELECT EMP.ENAME,DEPT.DNAME,EMP.JOB FROM EMP FULL OUTER JOIN DEPT ON EMP.DEPTNO=DEPT.DEPTNO;
+
+
+-- 서브쿼리, : 쿼리안에 쿼리
+-- 기본문법정의
+
+--WHERE 절 안에 사용하는 서브쿼리
+-- 사원 이름 : JONES 의 급여보다 
+-- 많이 받는 사원 출력
+-- JONES의 급여를 몰라요. 
+SELECT SAL FROM EMP WHERE ENAME = 'JONES';
+
+-- 밖의 쿼리 메인
+SELECT * FROM EMP WHERE SAL > ( 
+-- 서브 쿼리
+SELECT SAL FROM EMP WHERE ENAME = 'JONES'
+);
+
+-- SELECT 절에 사용하는 서브쿼리 
+SELECT ENAME, 
+(SELECT DNAME FROM DEPT WHERE DEPTNO = EMP.DEPTNO)
+AS "부서명"
+FROM EMP;
+A
+--  FROM 절에 사용하는 인라인 뷰
+SELECT JOB, AVG(SAL) AS "평균 급여"
+FROM (
+  SELECT * FROM EMP WHERE DEPTNO = 30
+)
+GROUP BY JOB;
+
+-- 퀴즈1
+-- 급여가 2975보다 높은 사원의 이름과 급여를 출력하시오
+SELECT ENAME, SAL FROM EMP 
+    WHERE SAL > 2975;
+
+-- 퀴즈2, 
+-- JONES보다 급여가 높은 사원의 이름과 급여를 출력하시오. 
+SELECT ENAME, SAL FROM EMP WHERE SAL >
+    (SELECT SAL FROM EMP WHERE ENAME = 'JONES');
+  
+-- 퀴즈3, 메인 쿼리에 서브 쿼리 이용해서, 부서명 출력
+-- DEPT 테이블의 부서명 표시
+SELECT ENAME, JOB, (SELECT DNAME FROM DEPT WHERE DEPTNO=EMP.DEPTNO) AS"부서명"
+    FROM EMP;
