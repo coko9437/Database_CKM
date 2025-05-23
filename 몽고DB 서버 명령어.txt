@@ -1,0 +1,10 @@
+몽고디비 서버 시작 명령어
+mongod --dbpath C:\Users\it\Documents\mongodb
+
+1)명령어 창 에서 붙여넣기
+경로: C:\mongodb_8.0.4 에서 cmd
+
+2)서버 끄려면 ctrl + c 또는 창닫기
+
+VScode에서 연결서버 주소 기본
+mongodb://localhost:27017
