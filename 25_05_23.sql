@@ -184,8 +184,11 @@ rollback;
 -- 객체를 생성, 변경, 삭제하는 데이터 정의어 : DDL
 
 -- CREATE : 객체를 생성하는 명령어
+
 -- ALTER : 객체를 변경하는 명령어
+
 -- DROP : 객체를 삭제하는 명령어
+
 -- TRUNCATE : 테이블의 모든 데이터를 삭제하는 명령어
 
 -- 테이블 이름 명명 할 때, 각각 언어의 예약어를 사용하면 안됨.
@@ -234,6 +237,9 @@ truncate table member_info;
 -- 테이블 자체를 삭제하기
 drop table member_info;
 
+-- CHAR(30)과 VARCHAR2(30)의 차이점
+-- CHAR(30)은 고정 길이 문자열, VARCHAR2(30)은 가변 길이 문자열
+
 -- 퀴즈1) 테이블 : BOARD // 컬럼 : BOARD_ID(NUMBER 5), TITLE(VARCHAR2(30)), CONTENT(VARCHAR2(300)), WRITER(VARCHAR2(30)), REGDATE(DATE)
 create table board (
    board_id number(5) primary key,
@@ -242,43 +248,33 @@ create table board (
    writer   varchar2(30) not null,
    regdate  date not null
 );
-select *
-  from board;
+select *  from board;
 insert into board (
-   board_id,
-   title,
-   content,
-   writer,
-   regdate
-) values ( 1,
-           '제목1',
-           '내용1',
-           '작성자1',
-           sysdate );
+         board_id, title, content, writer, regdate) 
+    values ( 1, '제목1', '내용1', '작성자1', sysdate );
 insert into board (
-   board_id,
-   title,
-   content,
-   writer,
-   regdate
-) values ( 2,
-           'CREATE11',
-           'CONTENT11',
-           'WRITTER11',
-           sysdate );
+         board_id, title, content, writer, regdate)
+    values ( 2, 'CREATE11', 'CONTENT11', 'WRITTER11', sysdate );
 insert into board (
-   board_id,
-   title,
-   content,
-   writer,
-   regdate
-) values ( 3,
-           'CREATE22',
-           'CONTENT22',
-           'WRITTER22',
-           sysdate );
+         board_id, title, content, writer, regdate)
+    values ( 3, 'CREATE22', 'CONTENT22', 'WRITTER22', sysdate );
 -- 퀴즈2) BOARD 테이블에 특정 컬럼의 타입 변경해보기. // WRITER VARCHART2 40으로 변경
 alter table board modify
    writer varchar2(40);
 -- 퀴즈3) BOARD 테이블에 내용만, 삭제해보기
 truncate table board;
+
+-- 인덱스의 정의 : 테이블에서 특정 열에 대한 빠른 검색을 지원하는 데이터 구조
+-- 인덱스 생성하기 
+-- 기본 문법 : CREATE INDEX 인덱스명 ON 테이블명 (열1, 열2, ...);
+-- EMP의 SAL 급여를 이용해서 이름은 EMP_SAL_IDX로 인덱스 생성
+CREATE INDEX EMP_SAL_IDX ON EMP (SAL);
+
+--인덱스 목록 조회
+SELECT * FROM USER_INDEXES;
+
+-- 인덱스 컬럼 조회
+SELECT * FROM USER_IND_COLUMNS WHERE INDEX_NAME = 'EMP_SAL_IDX';
+
+-- 인덱스 삭제하기
+DROP INDEX EMP_SAL_IDX;

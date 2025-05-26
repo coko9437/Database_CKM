@@ -50,11 +50,11 @@ for (let i = 0; i < 10; i++) {
 }
 db.logs.find()
 
-db.createCollection('logs2', { capped: true, size: 5000 })//5KB 인 용량의 컬렉션을 생성, 
+db.createCollection('logs3', { capped: true, size: 5000 })//5KB 인 용량의 컬렉션을 생성, 
 
-for (let i = 2000; i < 3000; i++) {
-    db.logs2.insertOne({
-        message: `로그메시지 ${i}`,
+for (let i = 1; i < 1000; i++) {
+    db.logs3.insertOne({
+        message: `로그메시지 ${i}`, // 로그 메시지 감싸는 기호는 백틱(`)을 사용
         timestamp: new Date(), //현재날짜 / 오라클로 표현하면 sysdate()
     })
 }

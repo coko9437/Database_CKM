@@ -44,18 +44,17 @@ SUM(SAL)FOR JOB IN ('CLERK' AS "사무직", 'MANAGER' AS "관리자", 'ANALYST' 
 --                          );
 -- 위 PIVOT 된 결과를 다시 행으로 변환
 SELECT DEPTNO, JOB, SUM(SAL) AS "총급여"
-FROM ( 
-SELECT * 
-    FROM ( 
-    SELECT DEPTNO, JOB, SAL
-    FROM EMP
-    )
+FROM ( SELECT * FROM ( 
+        SELECT DEPTNO, JOB, SAL
+        FROM EMP
+        )
     PIVOT(
     SUM(SAL) FOR JOB IN 
     ('CLERK' AS "사무직", 'MANAGER' AS "관리자",
     'ANALYST' AS "분석가")
     )
 )
+
 -- 위에서 만든, 가로로 변환한 예를 다시, 세로 방향으로 변환. 
 UNPIVOT (
     SAL FOR JOB IN (
@@ -277,7 +276,7 @@ SELECT ENAME,
 (SELECT DNAME FROM DEPT WHERE DEPTNO = EMP.DEPTNO)
 AS "부서명"
 FROM EMP;
-A
+
 --  FROM 절에 사용하는 인라인 뷰
 SELECT JOB, AVG(SAL) AS "평균 급여"
 FROM (
