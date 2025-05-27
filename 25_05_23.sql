@@ -5,16 +5,12 @@
 
 -- 예시
 
-update emp
-   set
-   sal = 1000;
+-- update emp set sal = 1000;
 
 -- 복사한 테이블에서 연습하기.
 -- EMP -> EMP_COPY 테이블 복사
-create table emp_copy
-   as
-      select *
-        from emp;
+create table emp_copy as
+      select * from emp;
 
 select *
   from emp_copy;

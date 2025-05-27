@@ -28,13 +28,15 @@ SELECT DEPTNO, JOB, SUM(SAL) FROM EMP GROUP BY CUBE(DEPTNO, JOB);
 -- JOB = 1 이라면 부서 합계로 생긴 NULL
 SELECT DEPTNO, JOB, SUM(SAL) AS "총급여" , GROUPING(DEPTNO) AS "GROUP_DEPTNO", GROUPING(JOB) AS "GROUP_JOB" FROM EMP GROUP BY ROLLUP(DEPTNO, JOB);
 
-
+----------------------------------------------
 -- PIVOT : 행 데이터 -->열 데이터
 -- 기본문법
 -- SELECT * FROM (SELECT 기준 컬럼, 피벗컬럼, 값 컬럼 FROM 테이블) 테이블 PIVOT(집계함수(값 컬럼) FOR 피벗컬럼 IN (값1 AS "별칭1", 값2 AS "별칭2", ...));
 -- 직책별 급여 합계를 부서별로, 가로형태로 전환
-SELECT * FROM (SELECT DEPTNO, JOB, SAL FROM EMP) PIVOT(
-SUM(SAL)FOR JOB IN ('CLERK' AS "사무직", 'MANAGER' AS "관리자", 'ANALYST' AS "분석가"));
+SELECT * FROM 
+    (SELECT DEPTNO, JOB, SAL FROM EMP) 
+        PIVOT (SUM(SAL)FOR JOB 
+            IN ('CLERK' AS "사무직", 'MANAGER' AS "관리자", 'ANALYST' AS "분석가"));
 
 
 -- UNPIVOT : 열 데이터를 다시 행으로 전환
@@ -43,17 +45,22 @@ SUM(SAL)FOR JOB IN ('CLERK' AS "사무직", 'MANAGER' AS "관리자", 'ANALYST' 
 --                  UNPIVOT(값 컬럼 FOR 피벗컬럼 IN (열1, 열2, ...)
 --                          );
 -- 위 PIVOT 된 결과를 다시 행으로 변환
+-- Select department number, job, and total salary after performing a PIVOT operation
 SELECT DEPTNO, JOB, SUM(SAL) AS "총급여"
-FROM ( SELECT * FROM ( 
-        SELECT DEPTNO, JOB, SAL
-        FROM EMP
+    FROM ( 
+        -- Inner query to select relevant columns from EMP table
+        SELECT * FROM ( 
+            SELECT DEPTNO, JOB, SAL
+                FROM EMP
         )
-    PIVOT(
-    SUM(SAL) FOR JOB IN 
-    ('CLERK' AS "사무직", 'MANAGER' AS "관리자",
-    'ANALYST' AS "분석가")
+        
+        PIVOT(
+            SUM(SAL) FOR JOB IN 
+            ('CLERK' AS "사무직", 'MANAGER' AS "관리자",
+            'ANALYST' AS "분석가")
+        )
     )
-)
+
 
 -- 위에서 만든, 가로로 변환한 예를 다시, 세로 방향으로 변환. 
 UNPIVOT (
@@ -82,7 +89,7 @@ SELECT EMPNO, ENAME, 항목, 금액 FROM (SELECT EMPNO, ENAME, SAL, COMM FROM EM
     SAL AS '급여', COMM AS '수당')
     );
     
-    
+ --------------------------------------------------------------------------------------------   
 -- 퀴즈1) EMP 테이블에서 SAL, COMM 을 UNPIVOT 한 후, 항목별 (급여/커미션) 전체 합계를 구하기. 별칭) 항목, 총합계
 SELECT ENAME, SAL, COMM FROM EMP;
 -- 기존 테이블 , 가로로 
