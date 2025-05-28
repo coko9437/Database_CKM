@@ -14,6 +14,7 @@ Use('test')//기본 데이터베이스는 test를 사용함. 생략시 기본 te
 //입력
 // 한줄실행 : crtl + alt + s
 // 전체실행 : crtl + alt + r
+
 db.users.insertOne({
     name: '홍길동',
     age: 20,
@@ -83,3 +84,57 @@ db.users2.deleteOne(
     }
 )
 
+// 17번 문제
+// 1) 생성
+db.createCollection('logs', { capped: true, size: 5000 })
+
+// 2) 샘플데이터 추가
+for (let i = 0; i < 1000; i++) {
+    db.logs.insertOne({
+        message: `로그메시지 ${i}`, 
+        timestamp: new Date(), 
+    })
+}
+// 3) 조회
+db.logs.find()
+
+//18번
+db.createCollection('users');
+db.users.insertOne({
+    이름 : '남궁미르',
+    생년월일 : '1953-05-27',
+    좋아하는음식 : ['삼계탕', '더덕구이'],
+    등록날짜 : new Date()
+}
+)
+    db.users.insertOne({
+        이름 : '최혜성',
+        생년월일 : '1989-09-13',
+        좋아하는음식 : ['산낙지', '족발'],
+        등록날짜 : new Date()
+    }
+    )
+        db.users.insertOne({
+            이름 : '유고은',
+            생년월일 : '1999-01-25',
+            좋아하는음식 : ['탕후루', '삼겹살'],
+            등록날짜 : new Date()
+        }
+        )
+db.users.find()
+
+//19번
+db.users.updateOne(
+    { 좋아하는음식 : ['삼계탕', '더덕구이']},
+    { $set: { 좋아하는음식: ['복국', '전가복'] } }
+)
+db.users.find()
+
+//20번
+
+db.users.deleteOne(
+    {
+    좋아하는음식 : ['산낙지', '족발']
+    }
+)
+db.users.find()
